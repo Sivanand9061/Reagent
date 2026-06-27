@@ -1,0 +1,125 @@
+REAGENT CODE ACADEMY — SYSTEM ARCHITECTURE & FEATURE EXPLANATION
+
+1. THE CORE VISION
+Reagent Code Academy is an interactive, personalized coding academy. Instead of offering static courses, it allows users to define their career targets (e.g. "AI Engineer" or "Frontend Developer"). The system then generates a customized, 4-step programming curriculum grounded in real-world 2026 job market demands, guiding the user through coding challenges with a Socratic AI Mentor.
+
+---
+
+2. KEY FEATURES & FUNCTIONAL MODULES
+
+A. THE CAREER DASHBOARD
+* Target Career Input: A clean search-bar styled interface where you type your target role.
+* Live Market Scraper: When you press enter, the AI scrapes the current job market to find required skills and frameworks.
+* Visual Roadmap Timeline: Renders a vertical node graph timeline representing your 4 learning steps. The nodes update dynamically:
+    - Completed (Green Check): Challenges you have solved and verified.
+    - In Progress (Blue Glowing Play): Your active learning node.
+    - Locked (Gray Padlock): Steps you must unlock by completing previous exercises.
+* Dynamic Welcome Greeting: Detects where you left off and greets you contextually (e.g., "Welcome back! Ready to tackle NLP Text Preprocessing?").
+* CTA Action Button: A single click immediately launches you into the challenge workspace for your current active node.
+
+B. THE CODE SANDBOX WORKSPACE (Left Panel)
+* Collapsible Lesson Card: Houses the title, difficulty, and description of your task. It can be collapsed ("Hide Instructions") to let the code editor expand to 100% of the vertical space.
+* Synced Code Editor: A dark code writing interface with custom-built, scroll-synced line numbers.
+* Sandboxed Runtime Console: A client-side JavaScript execution environment. It intercepts console.log, console.error, and console.warn to output print statements and syntax/runtime exceptions directly to the console output drawer (height expanded to 200px for easy logging).
+* Submit & Test: Runs unit tests against your function, verifying the solution and pushing your progress stats to the database.
+
+C. THE AI LEAR LEARNING SIDEBAR (Right Panel)
+A premium dark-themed (#181818) side nav containing four modular tabs:
+1. AI Coding Mentor (Chat):
+    - Socratic Mode: AI guides you with hints, syntax guides, and debug questions without writing code for you.
+    - Direct Mode: AI explains the bug and provides a corrected code block.
+    - Casual vs. Formal Tones: Casual injects developer emojis; Formal uses academic language.
+    - Action Toolbar: Let's you copy text, play Text-to-Speech (TTS), upvote/downvote hints, or regenerate answers.
+    - Document Grounding (RAG): Clicking the "+" button in the input field lets you upload a PDF or .txt file, grounding the AI in its context to explain topics.
+2. Practice Quiz: Generates 3 dynamic multiple-choice questions testing concepts utilized in your active challenge.
+3. Code Critique: Reviews your code structures, providing a Big O Complexity analysis (time/space complexity) and optimization highlights.
+4. Syntax Cheat Sheet: A quick-reference glossary of core JavaScript operators and methods.
+
+---
+
+3. HOW FEATURES CONNECT (DATA PIPELINES)
+
+PIPELINE 1: CAREER ROADMAP PIPELINE
+[User inputs target role]
+       │
+       ▼
+[Express Server POST /api/mentor/roadmap]
+       │
+       ▼
+[AI Roadmap Agent (Gemini w/ Google Search Grounding)]
+       │ (Scrapes live job postings & skills)
+       ▼
+[Generates 4 tailored modules mapping to 'sum', 'fizzbuzz', 'palindrome', 'sandbox']
+       │
+       ▼
+[Saves to Firestore users/{userId}/roadmap/active]
+       │
+       ▼
+[Client Dashboard updates greeting & renders interactive progress timeline]
+
+PIPELINE 2: CODE SUBMISSION & NODE UNLOCKING PIPELINE
+[User writes code in Editor] ───► [Clicks Run] ───► [Executes in safe local eval] ───► [Logs to Console Drawer]
+                                      │
+                                [Clicks Submit]
+                                      │
+                                      ▼
+                        [Runs test cases suite]
+                                      │
+                        (If all assertions pass)
+                                      │
+                                      ▼
+             [POST /api/mentor/user-stats to backend]
+                                      │
+                                      ▼
+         [Firestore updates completed list & mastery counts]
+                                      │
+                                      ▼
+    [Dashboard marks module as Mastered and unlocks the next node]
+
+PIPELINE 3: DOCUMENT GROUNDING PIPELINE (RAG)
+[Clicks '+' in Chat input] ───► [Uploads PDF/TXT]
+                                      │
+                                      ▼
+                    [POST /api/mentor/upload to backend]
+                                      │
+                                      ▼
+                [Multer parses buffer & pdf-parse extracts text]
+                                      │
+                                      ▼
+            [Saves to Firestore ...challenges/{id}/documents/active]
+                                      │
+                                      ▼
+          [Client displays green document badge above chat input]
+                                      │
+                    (User sends a message in chat)
+                                      │
+                                      ▼
+            [Backend fetches document text & truncates to 15k chars]
+                                      │ (Prevents token rate limits)
+                                      ▼
+        [Injected into Agent prompt context -> AI replies grounded in document]
+
+PIPELINE 4: ANTI-HALLUCINATION HISTORY PIPELINE
+[User performs actions on Client] (Run code, fail tests, quiz score)
+               │
+               ▼
+[POST /api/mentor/log-activity to backend]
+               │
+               ▼
+[Saves to users/{userId}/activityLogs with server-validated timestamps]
+               │
+               ▼
+(User asks: "What was I working on yesterday?")
+               │
+               ▼
+[Backend retrieves last 40 logs -> Injects into Code Mentor prompt]
+               │
+               ▼
+[AI answers based strictly on factual logs (no hallucinations)]
+
+---
+
+4. UNDERLYING TECHNOLOGIES
+* State & Navigation: Managed globally by React hooks (useState, useEffect) and context providers.
+* Authentication & Tokens: Client handles login via Firebase Auth. Every request to the Express backend is secured by retrieving the user's active Firebase ID token and sending it in the Authorization: Bearer [token] header.
+* Secure Database Operations: All database writes/reads go through the Express backend using Firebase Admin SDK privileges, bypassing direct client-side Firestore rules to ensure maximum security and zero browser console warnings.
