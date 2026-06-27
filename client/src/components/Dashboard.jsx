@@ -193,13 +193,13 @@ export default function Dashboard({ onStartChallenge }) {
 
         {/* Start button only if no roadmap exists */}
         {!roadmap && (
-          <div>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button 
               onClick={handleCTAClick}
               style={{
-                background: '#ffffff',
-                color: '#000000',
-                padding: '0.75rem 1.75rem',
+                background: 'var(--accent)',
+                color: '#ffffff',
+                padding: '0.65rem 1.5rem',
                 borderRadius: 'var(--radius-sm)',
                 fontWeight: 700,
                 fontSize: '0.88rem',
@@ -209,7 +209,26 @@ export default function Dashboard({ onStartChallenge }) {
                 cursor: 'pointer'
               }}
             >
-              Get Started
+              Generate Path
+              <ArrowRight size={15} />
+            </button>
+            <button 
+              onClick={() => onStartChallenge('sandbox')}
+              style={{
+                background: 'transparent',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                padding: '0.65rem 1.5rem',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              Open Code Sandbox
               <ArrowRight size={15} />
             </button>
           </div>

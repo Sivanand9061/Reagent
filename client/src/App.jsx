@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Home, Compass, Award, Settings, LogOut, Moon, Sun, 
-  Cpu, ChevronRight, Play, CheckCircle2 
+  Cpu, ChevronRight, Play, CheckCircle2, Code 
 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import AuthScreen from './components/AuthScreen';
@@ -129,6 +129,18 @@ export default function App() {
           >
             <Home size={18} />
             <span className="sidebar-label">Dashboard</span>
+          </button>
+
+          <button 
+            onClick={() => {
+              if (!activeChallenge) setActiveChallenge('sandbox');
+              setActiveView('workspace');
+            }} 
+            className={`sidebar-link ${activeView === 'workspace' ? 'active' : ''}`}
+            title="Code Sandbox"
+          >
+            <Code size={18} />
+            <span className="sidebar-label">Code Sandbox</span>
           </button>
 
           <button 
