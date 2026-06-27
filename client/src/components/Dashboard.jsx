@@ -243,6 +243,7 @@ export default function Dashboard({ onStartChallenge }) {
           </h4>
           <SkillMap 
             skillMap={sessionContext?.skillMap || {}} 
+            recentStruggles={sessionContext?.recentStruggles || []}
             onConceptClick={(concept) => {
               if (nextModule) {
                 onStartChallenge(nextModule.challengeId, concept);

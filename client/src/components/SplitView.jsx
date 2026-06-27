@@ -16,7 +16,8 @@ export default function SplitView({
   userStats, 
   onRefreshStats,
   filterConcept,
-  skillMap
+  skillMap,
+  recentStruggles
 }) {
   const { getAuthHeaders } = useAuth();
   const [activeTab, setActiveTab] = useState('explainer'); // 'explainer', 'quiz', 'critique', 'glossary'
@@ -253,7 +254,7 @@ export default function SplitView({
                 <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>▼</span> View Skill Map
               </summary>
               <div style={{ marginTop: '0.5rem', paddingBottom: '0.35rem' }}>
-                <SkillMap skillMap={skillMap || {}} layout="strip" />
+                <SkillMap skillMap={skillMap || {}} recentStruggles={recentStruggles || []} layout="strip" />
               </div>
             </details>
           </div>

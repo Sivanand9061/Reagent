@@ -22,8 +22,9 @@ const CONCEPT_LABELS = {
   general_logic: 'General Logic'
 };
 
-export default function SkillMap({ skillMap = {}, onConceptClick, layout = 'strip' }) {
-  const getRampColor = (score) => {
+export default function SkillMap({ skillMap = {}, recentStruggles = [], onConceptClick, layout = 'strip' }) {
+  const getRampColor = (score, hasStruggle) => {
+    if (hasStruggle) return 'var(--danger)'; // Crimson / Red to show struggle state
     if (score < 0.25) return 'var(--skill-ramp-0)';
     if (score < 0.50) return 'var(--skill-ramp-1)';
     if (score < 0.75) return 'var(--skill-ramp-2)';
@@ -31,7 +32,8 @@ export default function SkillMap({ skillMap = {}, onConceptClick, layout = 'stri
     return 'var(--skill-ramp-4)';
   };
 
-  const getStatusText = (score) => {
+  const getStatusText = (score, hasStruggle) => {
+    if (hasStruggle) return 'Struggling';
     if (score < 0.25) return 'Not started';
     if (score < 0.50) return 'Early';
     if (score < 0.75) return 'Developing';
@@ -44,6 +46,8 @@ export default function SkillMap({ skillMap = {}, onConceptClick, layout = 'stri
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
         {CONCEPTS.map(concept => {
           const score = skillMap[concept] !== undefined ? skillMap[concept] : 0.0;
+          const strugglesForConcept = recentStruggles || [];
+          const hasStruggle = strugglesForConcept.some(s => s.concept === concept);
           const percentage = Math.round(score * 100);
           
           return (
@@ -53,18 +57,19 @@ export default function SkillMap({ skillMap = {}, onConceptClick, layout = 'stri
               style={{
                 padding: '1.25rem',
                 background: 'var(--surface-1)',
-                border: '1px solid var(--border)',
+                border: hasStruggle ? '1px solid var(--danger)' : '1px solid var(--border)',
                 borderRadius: 'var(--radius-md)',
                 cursor: onConceptClick ? 'pointer' : 'default',
                 transition: 'var(--transition-smooth)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.75rem'
+                gap: '0.75rem',
+                boxShadow: hasStruggle ? 'rgba(239, 68, 68, 0.05) 0px 4px 12px' : 'none'
               }}
               className="glass-panel"
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: hasStruggle ? 'var(--danger)' : 'var(--text-primary)', textTransform: 'capitalize' }}>
                   {CONCEPT_LABELS[concept] || concept}
                 </span>
                 <div 
@@ -72,7 +77,7 @@ export default function SkillMap({ skillMap = {}, onConceptClick, layout = 'stri
                     width: '16px',
                     height: '16px',
                     borderRadius: 'var(--radius-sm)',
-                    backgroundColor: getRampColor(score),
+                    backgroundColor: getRampColor(score, hasStruggle),
                     flexShrink: 0
                   }}
                 />
@@ -80,11 +85,13 @@ export default function SkillMap({ skillMap = {}, onConceptClick, layout = 'stri
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  <span>{getStatusText(score)}</span>
+                  <span style={{ color: hasStruggle ? 'var(--danger)' : 'var(--text-secondary)', fontWeight: hasStruggle ? 600 : 400 }}>
+                    {getStatusText(score, hasStruggle)}
+                  </span>
                   <span style={{ fontWeight: 600 }}>{percentage}%</span>
                 </div>
                 <div style={{ width: '100%', height: '6px', background: 'var(--surface-2)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: `${percentage}%`, height: '100%', backgroundColor: getRampColor(score), transition: 'width 0.3s ease-out' }} />
+                  <div style={{ width: `${percentage}%`, height: '100%', backgroundColor: getRampColor(score, hasStruggle), transition: 'width 0.3s ease-out' }} />
                 </div>
               </div>
             </div>
@@ -99,47 +106,50 @@ export default function SkillMap({ skillMap = {}, onConceptClick, layout = 'stri
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', padding: '0.25rem 0' }}>
       {CONCEPTS.map(concept => {
         const score = skillMap[concept] !== undefined ? skillMap[concept] : 0.0;
+        const strugglesForConcept = recentStruggles || [];
+        const hasStruggle = strugglesForConcept.some(s => s.concept === concept);
+        const statusStr = getStatusText(score, hasStruggle);
         
         return (
           <div 
             key={concept}
             onClick={() => onConceptClick && onConceptClick(concept)}
             tabIndex={0}
-            title={`${CONCEPT_LABELS[concept] || concept}: ${Math.round(score * 100)}% (${getStatusText(score)})`}
+            title={`${CONCEPT_LABELS[concept] || concept}: ${Math.round(score * 100)}% (${statusStr})`}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
               padding: '0.4rem 0.75rem',
               background: 'var(--surface-1)',
-              border: '1px solid var(--border)',
+              border: hasStruggle ? '1px solid var(--danger)' : '1px solid var(--border)',
               borderRadius: 'var(--radius-sm)',
               cursor: onConceptClick ? 'pointer' : 'default',
               transition: 'var(--transition-smooth)',
               outline: 'none'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-strong)';
+              e.currentTarget.style.borderColor = hasStruggle ? 'var(--danger)' : 'var(--border-strong)';
               if (onConceptClick) e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)';
+              e.currentTarget.style.borderColor = hasStruggle ? 'var(--danger)' : 'var(--border)';
               e.currentTarget.style.transform = 'none';
             }}
             onFocus={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+            onBlur={(e) => e.currentTarget.style.borderColor = hasStruggle ? 'var(--danger)' : 'var(--border)'}
           >
             <div 
               style={{
                 width: '12px',
                 height: '12px',
                 borderRadius: '3px',
-                backgroundColor: getRampColor(score),
+                backgroundColor: getRampColor(score, hasStruggle),
                 transition: 'background-color 0.3s ease-out',
                 flexShrink: 0
               }}
             />
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: hasStruggle ? 'var(--danger)' : 'var(--text-secondary)' }}>
               {concept}
             </span>
           </div>

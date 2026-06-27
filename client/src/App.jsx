@@ -285,6 +285,7 @@ export default function App() {
               onRefreshStats={handleRefreshStats}
               filterConcept={filterConcept}
               skillMap={sessionContext?.skillMap || {}}
+              recentStruggles={sessionContext?.recentStruggles || []}
             />
           )}
         </div>
@@ -311,7 +312,7 @@ function SkillMapView({ userStats }) {
       </div>
 
       <div className="glass-panel" style={{ padding: '2rem', background: 'var(--surface-1)', borderRadius: 'var(--radius-lg)' }}>
-        <SkillMap skillMap={userStats?.skillMap || {}} layout="grid" />
+        <SkillMap skillMap={userStats?.skillMap || {}} recentStruggles={userStats?.recentStruggles || []} layout="grid" />
       </div>
 
       {userStats?.recentStruggles?.length > 0 && (
