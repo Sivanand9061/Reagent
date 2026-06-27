@@ -51,7 +51,8 @@ export default function MentorPanel({
   onAddLogs,
   userStats,
   onRefreshStats,
-  chatSessionId
+  chatSessionId,
+  documentVersion
 }) {
   const { getAuthHeaders } = useAuth();
   const [mentorMode, setMentorMode] = useState('socratic'); // 'socratic' or 'direct'
@@ -129,7 +130,7 @@ export default function MentorPanel({
     return () => {
       active = false;
     };
-  }, [challengeId, chatSessionId]);
+  }, [challengeId, chatSessionId, documentVersion]);
 
   // Cancel speech on unmount
   useEffect(() => {

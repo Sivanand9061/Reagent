@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Home, Compass, Award, Settings, LogOut, Moon, Sun, 
-  Cpu, ChevronRight, Play, CheckCircle2, Code 
+  Cpu, ChevronRight, Play, CheckCircle2, Code, UploadCloud 
 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import AuthScreen from './components/AuthScreen';
@@ -9,6 +9,7 @@ import SplitView from './components/SplitView';
 import Dashboard from './components/Dashboard';
 import SettingsModal from './components/SettingsModal';
 import SkillMap from './components/SkillMap';
+import UploadScreen from './components/UploadScreen';
 
 export default function App() {
   const { currentUser, logout, getAuthHeaders } = useAuth();
@@ -173,6 +174,15 @@ export default function App() {
             <span className="sidebar-label">Modules</span>
           </button>
 
+          <button 
+            onClick={() => setActiveView('upload')} 
+            className={`sidebar-link ${activeView === 'upload' ? 'active' : ''}`}
+            title="Upload Document"
+          >
+            <UploadCloud size={18} />
+            <span className="sidebar-label">Upload PDF</span>
+          </button>
+
           {/* Sidebar Footer Controls */}
           <div className="sidebar-footer">
             <button 
@@ -243,6 +253,13 @@ export default function App() {
           <span>Modules</span>
         </button>
         <button
+          onClick={() => setActiveView('upload')}
+          className={`mobile-nav-item ${activeView === 'upload' ? 'active' : ''}`}
+        >
+          <UploadCloud size={20} />
+          <span>Upload</span>
+        </button>
+        <button
           onClick={() => setDarkMode(!darkMode)}
           className="mobile-nav-item"
         >
@@ -282,6 +299,15 @@ export default function App() {
               roadmap={roadmap} 
               userStats={userStats} 
               onStartChallenge={handleStartChallenge}
+            />
+          )}
+
+          {activeView === 'upload' && (
+            <UploadScreen 
+              onUploadSuccess={() => {
+                setActiveView('dashboard');
+                loadUserData();
+              }}
             />
           )}
 

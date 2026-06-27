@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { HelpCircle, ShieldAlert, Book, ArrowLeft, MessageSquare, Terminal, Columns, Code, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { HelpCircle, ShieldAlert, Book, ArrowLeft, MessageSquare, Terminal, Columns, Code, Plus, UploadCloud } from 'lucide-react';
 import CodeEditor from './CodeEditor';
 import MentorPanel from './MentorPanel';
 import QuizPanel from './QuizPanel';
@@ -26,6 +26,70 @@ export default function SplitView({
   const [layoutMode, setLayoutMode] = useState('split'); // 'split', 'code', 'chat'
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
   const [chatSessionId, setChatSessionId] = useState(Date.now());
+
+  // Sidebar PDF upload states
+  const [documentVersion, setDocumentVersion] = useState(0);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const sidebarFileInputRef = useRef(null);
+
+  const handleSidebarFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingDoc(true);
+    if (onAddLogs) onAddLogs([`System: Uploading document "${file.name}" via sidebar...`]);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('challengeId', challengeId || 'sandbox');
+
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('http://localhost:5000/api/mentor/upload', {
+        method: 'POST',
+        headers: {
+          ...headers
+        },
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (onAddLogs) onAddLogs([`System: Document "${data.fileName}" uploaded successfully.`]);
+        
+        // Trigger MentorPanel context reload
+        setDocumentVersion(prev => prev + 1);
+
+        // Append system alert to chat via API
+        await fetch('http://localhost:5000/api/mentor/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...headers },
+          body: JSON.stringify({
+            challengeId: challengeId || 'sandbox',
+            chatSessionId: chatSessionId || 'default',
+            sender: 'assistant',
+            text: `📄 **Document Attached**: "${data.fileName}" has been uploaded via the workspace sidebar. I am now grounded in its contents. Ask me anything! 🧠`
+          })
+        });
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Upload failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to upload document: ${err.message}`);
+      if (onAddLogs) onAddLogs([`Upload Error: ${err.message}`]);
+    } finally {
+      setUploadingDoc(false);
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  const handleUploadTrigger = () => {
+    if (sidebarFileInputRef.current) {
+      sidebarFileInputRef.current.click();
+    }
+  };
 
   // Auto-route to quiz tab when a specific concept is targeted
   useEffect(() => {
@@ -321,6 +385,41 @@ export default function SplitView({
                 <Plus size={18} />
               </button>
 
+              {/* Hidden File Input for Sidebar Upload */}
+              <input 
+                type="file" 
+                ref={sidebarFileInputRef} 
+                onChange={handleSidebarFileChange} 
+                accept=".pdf,.txt" 
+                style={{ display: 'none' }} 
+              />
+
+              {/* Sidebar PDF/TXT Upload Button */}
+              <button 
+                onClick={handleUploadTrigger}
+                disabled={uploadingDoc}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  background: 'var(--surface-2)',
+                  color: uploadingDoc ? 'var(--text-muted)' : 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: uploadingDoc ? 'default' : 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                title="Upload PDF/TXT Document Context"
+              >
+                {uploadingDoc ? (
+                  <div className="cyber-loader" style={{ width: '16px', height: '16px', borderWidth: '2px', borderTopColor: 'var(--accent)' }} />
+                ) : (
+                  <UploadCloud size={18} />
+                )}
+              </button>
+
               {/* Spacer Line */}
               <div style={{ width: '24px', height: '1px', background: 'var(--border)' }} />
 
@@ -481,6 +580,7 @@ export default function SplitView({
                   userStats={userStats}
                   onRefreshStats={onRefreshStats}
                   chatSessionId={chatSessionId}
+                  documentVersion={documentVersion}
                 />
               )}
 
