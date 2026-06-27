@@ -14,6 +14,7 @@ export default function App() {
   const { currentUser, logout, getAuthHeaders } = useAuth();
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard', 'skillmap', 'modules', 'workspace'
   const [activeChallenge, setActiveChallenge] = useState(null);
+  const [filterConcept, setFilterConcept] = useState(null);
   const [logs, setLogs] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
   const [globalLoading, setGlobalLoading] = useState(false);
@@ -102,7 +103,8 @@ export default function App() {
     loadUserData(); // Fetch updated context and skillmap
   };
 
-  const handleStartChallenge = (cid) => {
+  const handleStartChallenge = (cid, concept = null) => {
+    setFilterConcept(concept);
     setActiveChallenge(cid);
     setActiveView('workspace');
   };
