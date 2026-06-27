@@ -233,6 +233,7 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
 
       // Factual Audit Logging: Save 'submit_fail' in background
       const logFailActivity = async () => {
+        console.log("CodeEditor: logFailActivity triggered. Posting submit_fail...");
         try {
           const headers = await getAuthHeaders();
           const res = await fetch('http://localhost:5000/api/mentor/log-activity', {
@@ -247,11 +248,13 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
               metadata: { error: testErr.message, linesOfCode: code.split('\n').filter(l => l.trim().length > 0).length }
             })
           });
+          console.log("CodeEditor: submit_fail response status:", res.status);
           if (res.ok && onRefreshStats) {
+            console.log("CodeEditor: calling onRefreshStats()...");
             onRefreshStats();
           }
         } catch (err) {
-          console.error('Failed to log submit fail activity:', err);
+          console.error('CodeEditor: Failed to log submit fail activity:', err);
         }
       };
       logFailActivity();

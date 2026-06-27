@@ -72,6 +72,7 @@ export default function App() {
   }, [activeView]);
 
   const loadUserData = async () => {
+    console.log("App: loadUserData triggered.");
     try {
       const headers = await getAuthHeaders();
       
@@ -79,18 +80,24 @@ export default function App() {
       const statsRes = await fetch('http://localhost:5000/api/mentor/user-stats', { headers });
       if (statsRes.ok) {
         const stats = await statsRes.json();
+        console.log("App: Successfully loaded user stats:", stats);
         setUserStats(stats);
+      } else {
+        console.warn("App: Failed to fetch user stats. Code:", statsRes.status);
       }
 
       // 2. Fetch context and roadmap
       const roadmapRes = await fetch('http://localhost:5000/api/mentor/roadmap', { headers });
       if (roadmapRes.ok) {
         const data = await roadmapRes.json();
+        console.log("App: Successfully loaded active context and roadmap:", data);
         setRoadmap(data.roadmap || null);
         setSessionContext(data.context || null);
+      } else {
+        console.warn("App: Failed to fetch active context/roadmap. Code:", roadmapRes.status);
       }
     } catch (err) {
-      console.error('Failed to load user data:', err);
+      console.error('App: Failed to load user data:', err);
     }
   };
 
@@ -99,7 +106,10 @@ export default function App() {
   };
 
   const handleRefreshStats = (newStats) => {
-    setUserStats(newStats);
+    console.log("App: handleRefreshStats invoked with:", newStats);
+    if (newStats) {
+      setUserStats(newStats);
+    }
     loadUserData(); // Fetch updated context and skillmap
   };
 
