@@ -357,16 +357,22 @@ router.post('/mentor/log-activity', requireAuth, async (req, res) => {
   try {
     await db.logUserActivity(req.userId, action, challengeId || 'sandbox', metadata || {});
 
-    // Update context on fail
+    // Update context dynamically on fail/pass actions
     if (action === 'submit_fail') {
       const concepts = getConceptsForChallenge(challengeId);
       await db.updateContextAfterSubmission(req.userId, { challengeId, concepts, verdict: 'fail' });
+    } else if (action === 'quiz_pass' && metadata?.concept) {
+      await db.updateContextAfterSubmission(req.userId, { challengeId, concepts: [metadata.concept], verdict: 'pass' });
+    } else if (action === 'quiz_fail' && metadata?.concept) {
+      await db.updateContextAfterSubmission(req.userId, { challengeId, concepts: [metadata.concept], verdict: 'fail' });
     }
 
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to save user action log.' });
   }
+});
+
 router.post('/mentor/session-end', requireAuth, async (req, res) => {
   const userKeys = getUserKeysFromHeaders(req);
   try {

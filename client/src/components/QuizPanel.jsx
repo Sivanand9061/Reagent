@@ -3,7 +3,7 @@ import { HelpCircle, CheckCircle2, AlertCircle, Award, RotateCcw, Play, Check } 
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
 
-export default function QuizPanel({ challengeId, currentCode, onAddLogs, filterConcept }) {
+export default function QuizPanel({ challengeId, currentCode, onAddLogs, filterConcept, onRefreshStats }) {
   const { getAuthHeaders } = useAuth();
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState([]);
@@ -99,6 +99,28 @@ export default function QuizPanel({ challengeId, currentCode, onAddLogs, filterC
           next[currentIdx] = { isCorrect: true };
           return next;
         });
+
+        // Log pass activity to update skill Map concept
+        const logQuizPass = async () => {
+          try {
+            const headers = await getAuthHeaders();
+            const res = await fetch('http://localhost:5000/api/mentor/log-activity', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...headers },
+              body: JSON.stringify({
+                action: 'quiz_pass',
+                challengeId: challengeId || 'sandbox',
+                metadata: { concept: filterConcept || currentQuestion.concept || 'general_logic' }
+              })
+            });
+            if (res.ok && onRefreshStats) {
+              onRefreshStats();
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        };
+        logQuizPass();
       }
     } catch (err) {
       setVerifyResult({ success: false, message: `❌ Verification failed: ${err.message}` });
@@ -108,6 +130,28 @@ export default function QuizPanel({ challengeId, currentCode, onAddLogs, filterC
           next[currentIdx] = { isCorrect: false };
           return next;
         });
+
+        // Log fail activity to record struggle and decrement skill
+        const logQuizFail = async () => {
+          try {
+            const headers = await getAuthHeaders();
+            const res = await fetch('http://localhost:5000/api/mentor/log-activity', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...headers },
+              body: JSON.stringify({
+                action: 'quiz_fail',
+                challengeId: challengeId || 'sandbox',
+                metadata: { error: err.message, concept: filterConcept || currentQuestion.concept || 'general_logic' }
+              })
+            });
+            if (res.ok && onRefreshStats) {
+              onRefreshStats();
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        };
+        logQuizFail();
       }
     }
   };

@@ -58,7 +58,7 @@ export const CHALLENGES = [
   }
 ];
 
-export default function CodeEditor({ challengeId, onCodeChange, onChallengeSuccess, savedCode }) {
+export default function CodeEditor({ challengeId, onCodeChange, onChallengeSuccess, savedCode, onRefreshStats }) {
   const { getAuthHeaders } = useAuth();
   const challenge = CHALLENGES.find(c => c.id === challengeId) || CHALLENGES[3];
   const [code, setCode] = useState(savedCode || challenge.starterCode);
@@ -235,7 +235,7 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
       const logFailActivity = async () => {
         try {
           const headers = await getAuthHeaders();
-          await fetch('http://localhost:5000/api/mentor/log-activity', {
+          const res = await fetch('http://localhost:5000/api/mentor/log-activity', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -247,6 +247,9 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
               metadata: { error: testErr.message, linesOfCode: code.split('\n').filter(l => l.trim().length > 0).length }
             })
           });
+          if (res.ok && onRefreshStats) {
+            onRefreshStats();
+          }
         } catch (err) {
           console.error('Failed to log submit fail activity:', err);
         }

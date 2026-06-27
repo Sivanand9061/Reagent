@@ -265,6 +265,7 @@ export default function SplitView({
               onCodeChange={handleCodeChange}
               onChallengeSuccess={handleChallengeSuccess}
               savedCode={savedCode}
+              onRefreshStats={onRefreshStats}
             />
           </div>
         </div>
@@ -488,6 +489,7 @@ export default function SplitView({
                   currentCode={currentCode}
                   onAddLogs={onAddLogs}
                   filterConcept={filterConcept}
+                  onRefreshStats={onRefreshStats}
                 />
               )}
 
