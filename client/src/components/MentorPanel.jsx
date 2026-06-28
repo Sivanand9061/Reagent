@@ -88,7 +88,14 @@ export default function MentorPanel({
       try {
         const headers = await getAuthHeaders();
         
-        // 1. Fetch chat history
+        // 1. Fetch active document context first
+        const docRes = await fetch(`http://localhost:5000/api/mentor/document/${challengeId}`, { headers });
+        if (docRes.ok && active) {
+          const docData = await docRes.json();
+          setActiveDocument(docData.document);
+        }
+
+        // 2. Fetch chat history
         const res = await fetch(`http://localhost:5000/api/mentor/chat/${challengeId}`, { headers });
         if (res.ok && active) {
           const data = await res.json();
@@ -110,14 +117,57 @@ export default function MentorPanel({
               };
             });
             setMessages(formatted);
-          }
-        }
+          } else {
+            // Chat history is empty! Generate a Socratic welcome greeting from the AI.
+            // Temporarily show a loading state in the message thread
+            setMessages([{
+              id: 'loading_welcome',
+              sender: 'assistant',
+              text: 'Socratic Mentor is joining the workspace...',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }]);
 
-        // 2. Fetch active document context
-        const docRes = await fetch(`http://localhost:5000/api/mentor/document/${challengeId}`, { headers });
-        if (docRes.ok && active) {
-          const docData = await docRes.json();
-          setActiveDocument(docData.document);
+            const welcomeRes = await fetch('http://localhost:5000/api/mentor/explain', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...headers },
+              body: JSON.stringify({
+                challengeId,
+                message: '[SYSTEM_WELCOME_GREETING]',
+                mentorMode: mentorMode,
+                tone: mentorMode === 'direct' ? 'formal' : 'casual',
+                history: [],
+                currentTime: new Date().toString(),
+                code: ''
+              })
+            });
+
+            if (welcomeRes.ok && active) {
+              const welcomeData = await welcomeRes.json();
+              const welcomeText = welcomeData.explanation;
+
+              const welcomeMsg = {
+                id: Date.now(),
+                sender: 'assistant',
+                text: welcomeText,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              };
+              setMessages([welcomeMsg]);
+
+              // Save in Firestore chat history
+              await fetch('http://localhost:5000/api/mentor/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...headers },
+                body: JSON.stringify({
+                  challengeId,
+                  chatSessionId,
+                  sender: 'assistant',
+                  text: welcomeText
+                })
+              });
+            } else {
+              setMessages([]);
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to load session context:', err);

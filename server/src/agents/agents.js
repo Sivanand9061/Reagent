@@ -277,6 +277,7 @@ Rules:
 export async function runCodeMentorAgent({
   code,
   message,
+  challengeId = 'sandbox',
   mentorMode = 'socratic',
   tone = 'casual',
   history = [],
@@ -292,7 +293,34 @@ export async function runCodeMentorAgent({
 
 You must follow these rules based on the Mentor Mode:
 1. **"socratic" (Socratic Guide)**: DO NOT write or correct the student's code directly! Do NOT give them copy-pasteable blocks of the completed solution. Instead, analyze their code, explain the conceptual bug, ask leading questions, and provide minor hints or syntax examples to guide them to find the fix themselves. Act like a true real-time mentor.
-2. **"direct" (Direct Instructor)**: Explain the error clearly, point out the exact line numbers that have problems, and provide a clean, corrected code block showing how to implement the solution correctly.
+2. **"direct" (Direct Instructor)**: Explain the error clearly, point out the exact line numbers that have problems, and provide a clean, corrected code block showing how to implement the solution correctly.`;
+
+  if (message === '[SYSTEM_WELCOME_GREETING]') {
+    let challengeName = 'Free Code Sandbox';
+    let challengeGoal = 'writing arbitrary code and experimenting with JavaScript, Python, or HTML/CSS';
+    if (challengeId === 'sum') {
+      challengeName = 'Calculate Sum of Array';
+      challengeGoal = 'writing a function `sumArray(numbers)` that sums up all elements in a numeric array and returns it';
+    } else if (challengeId === 'fizzbuzz') {
+      challengeName = 'FizzBuzz Challenge';
+      challengeGoal = 'writing a function `fizzBuzz(n)` that returns an array of numbers from 1 to n with multiples of three replaced by "Fizz", multiples of five replaced by "Buzz", and both by "FizzBuzz"';
+    } else if (challengeId === 'palindrome') {
+      challengeName = 'Palindrome Checker';
+      challengeGoal = 'writing a function `isPalindrome(str)` that checks whether a string reads the same backward as forward (case-insensitive, ignoring alphanumeric characters)';
+    }
+
+    systemInstruction = `You are an expert AI Coding Mentor. The user has just clicked on the challenge: "${challengeName}" and loaded the workspace.
+    
+Your task is to generate a brief, encouraging welcome message:
+1. Greet them warmly and contextually.
+2. Briefly introduce the goal of the challenge: "${challengeGoal}".
+3. Socratic-ly ask them how they plan to approach writing this code or setting up the logic, guiding them to begin.
+4. Keep the message under 3 sentences to keep it brief and fast to read. Do not write any code solutions yet.
+5. Adjust tone according to the Tone Toggle:
+- "casual": Friendly, encouraging, and use developer emojis.
+- "formal": Professional, objective, precise, and academic (no emojis).
+`;
+  }
 
 Adjust your tone according to the Tone Toggle:
 - **"casual"**: Friendly, supportive, highly conversational, and encouraging. Use trendy developer emojis (e.g. 💻, 🚀, 🐛, 🧠, ✨, 🤓) to make the chat interactive and realistic.

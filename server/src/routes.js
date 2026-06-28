@@ -71,6 +71,7 @@ router.post('/mentor/explain', requireAuth, async (req, res) => {
     const response = await runCodeMentorAgent({
       code: code || '',
       message: message || '',
+      challengeId: challengeId || 'sandbox',
       mentorMode: mentorMode || 'socratic',
       tone: tone || 'casual',
       history: history || [],
