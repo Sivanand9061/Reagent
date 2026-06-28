@@ -1,0 +1,11 @@
+- `[x]` Configure Tailwind CSS in client/
+- `[x]` Implement Document upload, parsing, and chunking backend pipeline (`POST /api/docs/upload`)
+- `[x]` Implement Document listing and deletion backend routes (`GET /api/docs`, `DELETE /api/docs/:docId`)
+- `[x]` Implement Single-document Q&A first (skip relevance-picking initially) to verify citation format
+- `[x]` Implement Multi-document relevance retrieval and answer generation Q&A (`POST /api/qa/ask`)
+- `[x]` Implement Server-side staleness detection and conflict parsing
+- `[x]` Build Frontend Auth screen (Firebase email/password + Google sign-in)
+- `[x]` Build Left Rail navigation layout
+- `[x]` Build Documents view screen with upload and list status
+- `[x]` Build Q&A chat and doc viewer split view screen with citations, conflict, and staleness callouts
+- `[x]` Perform comprehensive testing and verification of the full loop
