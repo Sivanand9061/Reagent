@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Check, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+const STARTER_CODES = {
+  javascript: `// Write any JavaScript code here!\nconst message = "Hello, Reagent Academy!";\nconsole.log(message);\n\nfunction greet(name) {\n  return "Hi, " + name + "! 👋";\n}\n\nconsole.log(greet("Developer"));`,
+  python: `# Write Python code here!\nmessage = "Hello, Python in Reagent!"\nprint(message)\n\ndef greet(name):\n    return f"Hi, {name}! 🐍"\n\nprint(greet("Developer"))`,
+  html: `<!-- Write HTML/CSS here! -->\n<div class="card">\n  <h1>Welcome to Reagent! 🎨</h1>\n  <p>This is a live visual preview of your HTML and CSS code.</p>\n  <button onclick="alert('Hello from HTML!')">Click Me</button>\n</div>\n\n<style>\n  .card {\n    padding: 2rem;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    color: white;\n    border-radius: 12px;\n    text-align: center;\n    box-shadow: 0 10px 15px rgba(0,0,0,0.1);\n    font-family: sans-serif;\n  }\n  button {\n    padding: 0.6rem 1.5rem;\n    background: white;\n    color: #764ba2;\n    border: none;\n    border-radius: 6px;\n    font-weight: bold;\n    margin-top: 1rem;\n    cursor: pointer;\n    transition: transform 0.1s;\n  }\n  button:hover {\n    transform: scale(1.05);\n  }\n</style>`
+};
+
 export const CHALLENGES = [
   {
     id: 'sum',
@@ -61,6 +67,14 @@ export const CHALLENGES = [
 export default function CodeEditor({ challengeId, onCodeChange, onChallengeSuccess, savedCode, onRefreshStats }) {
   const { getAuthHeaders } = useAuth();
   const challenge = CHALLENGES.find(c => c.id === challengeId) || CHALLENGES[3];
+  
+  // Multi-language sandbox states
+  const [language, setLanguage] = useState('javascript');
+  const [pyodideInstance, setPyodideInstance] = useState(null);
+  const [pyodideLoading, setPyodideLoading] = useState(false);
+  const [activeConsoleTab, setActiveConsoleTab] = useState('console'); // 'console' | 'preview'
+  const [previewHtml, setPreviewHtml] = useState('');
+  
   const [code, setCode] = useState(savedCode || challenge.starterCode);
   const [consoleLogs, setConsoleLogs] = useState([]);
   const [testResult, setTestResult] = useState(null); // { success: boolean, message: string }
@@ -70,11 +84,33 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    setCode(savedCode || challenge.starterCode);
+    if (challengeId === 'sandbox') {
+      setCode(savedCode || STARTER_CODES[language]);
+    } else {
+      setCode(savedCode || challenge.starterCode);
+      setLanguage('javascript');
+    }
     setConsoleLogs([]);
     setTestResult(null);
     setConsoleCollapsed(true);
+    setActiveConsoleTab('console');
   }, [challengeId, savedCode]);
+
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    const template = STARTER_CODES[newLang];
+    setCode(template);
+    if (onCodeChange) onCodeChange(template);
+    setConsoleLogs([]);
+    setTestResult(null);
+    if (newLang === 'html') {
+      setActiveConsoleTab('preview');
+      setConsoleCollapsed(false);
+    } else {
+      setActiveConsoleTab('console');
+      setConsoleCollapsed(true);
+    }
+  };
 
   const handleTextareaChange = (e) => {
     const val = e.target.value;
@@ -88,44 +124,24 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
     }
   };
 
-  const runCode = () => {
+  // Pyodide dynamic script loader
+  const loadPyodideScript = () => {
+    return new Promise((resolve, reject) => {
+      if (window.loadPyodide) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = (err) => reject(err);
+      document.body.appendChild(script);
+    });
+  };
+
+  const runCode = async () => {
     const logs = [];
-    const customConsole = {
-      log: (...args) => {
-        logs.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' '));
-      },
-      error: (...args) => {
-        logs.push('❌ Error: ' + args.join(' '));
-      },
-      warn: (...args) => {
-        logs.push('⚠️ Warning: ' + args.join(' '));
-      }
-    };
-
-    let compileErr = false;
-    try {
-      // Execute the user code in a safe local scope binding a custom console
-      const runner = new Function('console', `
-        try {
-          ${code}
-        } catch (err) {
-          console.error(err.message + " (line " + (err.lineNumber || 'unknown') + ")");
-        }
-      `);
-      
-      runner(customConsole);
-      if (logs.length === 0) {
-        logs.push('System: Code executed successfully. (No output printed)');
-      }
-    } catch (compileErrObj) {
-      compileErr = true;
-      logs.push(`❌ Syntax/Compilation Error: ${compileErrObj.message}`);
-    }
-
-    setConsoleLogs(logs);
-    if (logs.length > 1 || compileErr) {
-      setConsoleCollapsed(false);
-    }
 
     // Factual Audit Logging: Save 'run_code' action in background
     const logRunActivity = async () => {
@@ -140,7 +156,10 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
           body: JSON.stringify({
             action: 'run_code',
             challengeId: challenge.id,
-            metadata: { linesOfCode: code.split('\n').filter(l => l.trim().length > 0).length }
+            metadata: { 
+              linesOfCode: code.split('\n').filter(l => l.trim().length > 0).length,
+              language 
+            }
           })
         });
       } catch (err) {
@@ -149,6 +168,89 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
     };
     logRunActivity();
 
+    // 1. HTML/CSS visual rendering
+    if (language === 'html') {
+      setPreviewHtml(code);
+      setConsoleLogs(['System: Web preview updated successfully.']);
+      setActiveConsoleTab('preview');
+      setConsoleCollapsed(false);
+      return ['System: Web preview updated successfully.'];
+    }
+
+    // 2. Python in-browser Pyodide run
+    if (language === 'python') {
+      setPyodideLoading(true);
+      setConsoleLogs(['System: Initializing Python 3.x runtime in-browser...']);
+      setConsoleCollapsed(false);
+
+      try {
+        await loadPyodideScript();
+        let py = pyodideInstance;
+        if (!py) {
+          py = await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/'
+          });
+          setPyodideInstance(py);
+        }
+
+        const pyOutputs = [];
+        py.setStdout({
+          batched: (text) => pyOutputs.push(text)
+        });
+        py.setStderr({
+          batched: (text) => pyOutputs.push('❌ Python Error: ' + text)
+        });
+
+        await py.runPythonAsync(code);
+        
+        if (pyOutputs.length === 0) {
+          pyOutputs.push('System: Python code executed successfully. (No output printed)');
+        }
+        setConsoleLogs(pyOutputs);
+      } catch (err) {
+        setConsoleLogs([`❌ Python Execution Error: ${err.message}`]);
+      } finally {
+        setPyodideLoading(false);
+      }
+      return;
+    }
+
+    // 3. JavaScript local evaluation
+    const customConsole = {
+      log: (...args) => {
+        logs.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' '));
+      },
+      error: (...args) => {
+        logs.push('❌ Error: ' + args.join(' '));
+      },
+      warn: (...args) => {
+        logs.push('⚠️ Warning: ' + args.join(' '));
+      }
+    };
+
+    let compileErr = false;
+    try {
+      const runner = new Function('console', `
+        try {
+          ${code}
+        } catch (err) {
+          console.error(err.message + " (line " + (err.lineNumber || 'unknown') + ")");
+        }
+      `);
+      
+      runner(customConsole);
+      if (logs.length === 0) {
+        logs.push('System: JavaScript code executed successfully. (No output printed)');
+      }
+    } catch (compileErrObj) {
+      compileErr = true;
+      logs.push(`❌ Syntax/Compilation Error: ${compileErrObj.message}`);
+    }
+
+    setConsoleLogs(logs);
+    if (logs.length > 1 || compileErr) {
+      setConsoleCollapsed(false);
+    }
     return logs;
   };
 
@@ -344,9 +446,36 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
         {/* Code Editor Container */}
         <div className="glass-panel" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', background: '#1c1c22', borderColor: 'var(--border)', overflow: 'hidden', borderRadius: 'var(--radius-md)', minHeight: '150px' }}>
           {/* Editor Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', background: '#15151a', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 600 }}>javascript_sandbox.js</span>
-            <button onClick={resetCode} title="Reset code template" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', border: 'none', background: 'transparent' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', background: '#15151a', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 600 }}>
+                {language === 'javascript' ? 'javascript_sandbox.js' : language === 'python' ? 'python_sandbox.py' : 'index.html'}
+              </span>
+              
+              {challenge.id === 'sandbox' && (
+                <select
+                  value={language}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  style={{
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.7rem',
+                    padding: '0.15rem 0.4rem',
+                    borderRadius: '4px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python 3</option>
+                  <option value="html">HTML/CSS</option>
+                </select>
+              )}
+            </div>
+
+            <button onClick={resetCode} title="Reset code template" style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', border: 'none', background: 'transparent', cursor: 'pointer' }}>
               <RotateCcw size={12} />
               Reset
             </button>
@@ -456,7 +585,7 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
         <div 
           className="glass-panel" 
           style={{ 
-            height: consoleCollapsed ? '80px' : '200px', 
+            height: consoleCollapsed ? '80px' : (activeConsoleTab === 'preview' ? '380px' : '220px'), 
             background: 'var(--surface-2)', 
             borderColor: 'var(--border)', 
             display: 'flex', 
@@ -478,12 +607,57 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
               justifyContent: 'space-between', 
               alignItems: 'center',
               cursor: 'pointer',
-              userSelect: 'none'
+              userSelect: 'none',
+              flexShrink: 0
             }}
           >
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              {consoleCollapsed ? '▲ Console Output' : '▼ Console Output'}
-            </span>
+            {/* Tabs list inside Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveConsoleTab('console');
+                  setConsoleCollapsed(false);
+                }}
+                style={{ 
+                  fontSize: '0.72rem', 
+                  color: activeConsoleTab === 'console' ? 'var(--accent)' : 'var(--text-secondary)', 
+                  fontWeight: 750, 
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  borderBottom: activeConsoleTab === 'console' ? '2px solid var(--accent)' : '2px solid transparent',
+                  paddingBottom: '0.2rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Console Output
+              </span>
+              
+              {language === 'html' && (
+                <span 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveConsoleTab('preview');
+                    setConsoleCollapsed(false);
+                  }}
+                  style={{ 
+                    fontSize: '0.72rem', 
+                    color: activeConsoleTab === 'preview' ? 'var(--accent)' : 'var(--text-secondary)', 
+                    fontWeight: 750, 
+                    cursor: 'pointer',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    borderBottom: activeConsoleTab === 'preview' ? '2px solid var(--accent)' : '2px solid transparent',
+                    paddingBottom: '0.2rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Live Preview
+                </span>
+              )}
+            </div>
+
             {testResult && (
               <span style={{ fontSize: '0.72rem', fontWeight: 600, color: testResult.success ? 'var(--success)' : 'var(--danger)' }}>
                 {testResult.message}
@@ -491,44 +665,71 @@ export default function CodeEditor({ challengeId, onCodeChange, onChallengeSucce
             )}
           </div>
           
-          {/* Logs View */}
-          <div style={{ flexGrow: 1, padding: '0.75rem 1rem', overflowY: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', lineHeight: '1.4', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            {consoleCollapsed ? (
-              // Collapsed Mode: show only the very last console output line
-              consoleLogs.length > 0 ? (
-                <div style={{ 
-                  color: consoleLogs[consoleLogs.length - 1].startsWith('❌') ? 'var(--danger)' : 'var(--text-primary)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {consoleLogs[consoleLogs.length - 1]}
-                </div>
-              ) : (
-                <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  Console idle. Click 'Run Code' to execute.
-                </div>
+          {/* Output Content Body */}
+          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: activeConsoleTab === 'preview' ? '#ffffff' : 'transparent' }}>
+            {activeConsoleTab === 'preview' ? (
+              // HTML Live visual preview iframe
+              !consoleCollapsed && (
+                <iframe
+                  title="Visual Live Preview"
+                  srcDoc={previewHtml}
+                  sandbox="allow-scripts"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    background: '#ffffff'
+                  }}
+                />
               )
             ) : (
-              // Expanded Mode: show full logs list
-              <>
-                {consoleLogs.map((log, index) => (
-                  <div 
-                    key={index} 
-                    style={{ 
-                      color: log.startsWith('❌') ? 'var(--danger)' : log.startsWith('⚠️') ? 'var(--momentum)' : log.startsWith('System') ? 'var(--text-muted)' : 'var(--text-primary)',
-                      whiteSpace: 'pre-wrap'
-                    }}
-                  >
-                    {log}
-                  </div>
-                ))}
-                {consoleLogs.length === 0 && (
-                  <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    Console idle. Click 'Run Code' or 'Submit & Test' to execute.
+              // Standard Console Logs
+              <div style={{ flexGrow: 1, padding: '0.75rem 1rem', overflowY: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.82rem', lineHeight: '1.4', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                {pyodideLoading && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', paddingBottom: '0.5rem' }}>
+                    <div className="cyber-loader" style={{ width: '14px', height: '14px', borderWidth: '1.5px', borderTopColor: 'var(--accent)', borderRadius: '50%' }} />
+                    <span>Loading Python in-browser runtime environment (Pyodide)...</span>
                   </div>
                 )}
-              </>
+                
+                {consoleCollapsed ? (
+                  // Collapsed Mode: show only the very last console output line
+                  consoleLogs.length > 0 ? (
+                    <div style={{ 
+                      color: consoleLogs[consoleLogs.length - 1].startsWith('❌') ? 'var(--danger)' : 'var(--text-primary)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {consoleLogs[consoleLogs.length - 1]}
+                    </div>
+                  ) : (
+                    <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Console idle. Click 'Run Code' to execute.
+                    </div>
+                  )
+                ) : (
+                  // Expanded Mode: show full logs list
+                  <>
+                    {consoleLogs.map((log, index) => (
+                      <div 
+                        key={index} 
+                        style={{ 
+                          color: log.startsWith('❌') ? 'var(--danger)' : log.startsWith('⚠️') ? 'var(--momentum)' : log.startsWith('System') ? 'var(--text-muted)' : 'var(--text-primary)',
+                          whiteSpace: 'pre-wrap'
+                        }}
+                      >
+                        {log}
+                      </div>
+                    ))}
+                    {consoleLogs.length === 0 && !pyodideLoading && (
+                      <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Console idle. Click 'Run Code' or 'Submit & Test' to execute.
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
