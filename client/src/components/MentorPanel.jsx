@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Volume2, Send, Sparkles, Brain, Award, Copy, ThumbsUp, ThumbsDown, 
-  RotateCcw, Plus, Mic, ChevronDown, FileText 
+  RotateCcw, Plus, Mic, ChevronDown, FileText, UploadCloud 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -755,31 +755,50 @@ export default function MentorPanel({
               onClick={handleFileUploadClick}
               disabled={uploadingDoc || loading}
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: (uploadingDoc || loading) ? '#444444' : '#888888',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: (uploadingDoc || loading) ? '#555555' : '#e0e0e0',
                 cursor: (uploadingDoc || loading) ? 'default' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                padding: '4px',
-                borderRadius: '50%'
+                gap: '0.4rem',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                transition: 'all 0.15s ease'
               }}
               title="Upload PDF or Text Document"
-              onMouseEnter={(e) => { if (!uploadingDoc && !loading) e.currentTarget.style.color = '#ffffff'; }}
-              onMouseLeave={(e) => { if (!uploadingDoc && !loading) e.currentTarget.style.color = '#888888'; }}
+              onMouseEnter={(e) => { 
+                if (!uploadingDoc && !loading) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                }
+              }}
+              onMouseLeave={(e) => { 
+                if (!uploadingDoc && !loading) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                }
+              }}
             >
               {uploadingDoc ? (
-                <div style={{
-                  width: '15px',
-                  height: '15px',
-                  border: '2px solid #555',
-                  borderTopColor: '#10b981',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }} />
+                <>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    border: '1.5px solid #555',
+                    borderTopColor: 'var(--accent)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  <span>Uploading...</span>
+                </>
               ) : (
-                <Plus size={16} />
+                <>
+                  <UploadCloud size={14} style={{ color: 'var(--accent)' }} />
+                  <span>Upload Learning PDF</span>
+                </>
               )}
             </button>
 
