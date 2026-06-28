@@ -370,42 +370,46 @@ You must follow these rules:
 
   let prompt = '';
   
-  if (activeDoc) {
-    const docLimit = 15000;
-    const truncatedText = activeDoc.text.length > docLimit
-      ? activeDoc.text.substring(0, docLimit) + "\n\n[Document content truncated for context size limits]"
-      : activeDoc.text;
-    prompt += `[Uploaded Document Content from "${activeDoc.fileName}"]:
+  if (message === '[SYSTEM_WELCOME_GREETING]') {
+    prompt = `Please generate the concise welcome greeting for the "${challengeId}" challenge now. Do not reference other challenges, user goals, or time of day. Just greet them, explain the goal of this challenge, and ask how they plan to begin. Keep it under 2 sentences.`;
+  } else {
+    if (activeDoc) {
+      const docLimit = 15000;
+      const truncatedText = activeDoc.text.length > docLimit
+        ? activeDoc.text.substring(0, docLimit) + "\n\n[Document content truncated for context size limits]"
+        : activeDoc.text;
+      prompt += `[Uploaded Document Content from "${activeDoc.fileName}"]:
 ${truncatedText}
 
 `;
-  }
-  
-  if (sessionContext) {
-    prompt += `[USER ACTIVE SESSION CONTEXT]:
+    }
+    
+    if (sessionContext) {
+      prompt += `[USER ACTIVE SESSION CONTEXT]:
 - Active Node: ${JSON.stringify(sessionContext.activeNode || {})}
 - Skill Map (Proficiency): ${JSON.stringify(sessionContext.skillMap || {})}
 - Recent Struggles: ${JSON.stringify(sessionContext.recentStruggles || [])}
 - Last Session Summary: ${sessionContext.lastSessionSummary || 'None'}
 
 `;
-  } else {
-    prompt += `[USER ACTIVE SESSION CONTEXT]:
+    } else {
+      prompt += `[USER ACTIVE SESSION CONTEXT]:
 No active session context document found. First active session.
 
 `;
+    }
+    
+    if (code) {
+      prompt += `[Current Student Code in Editor]:\n\`\`\`javascript\n${code}\n\`\`\`\n\n`;
+    }
+    
+    if (history && history.length > 0) {
+      const historyString = history.map(h => `${h.sender === 'user' ? 'User' : 'Assistant'}: ${h.text}`).join('\n');
+      prompt += `[Conversation History]:\n${historyString}\n\n`;
+    }
+    
+    prompt += `Student Message: "${message}"\n\nProvide your mentorship response now:`;
   }
-  
-  if (code) {
-    prompt += `[Current Student Code in Editor]:\n\`\`\`javascript\n${code}\n\`\`\`\n\n`;
-  }
-  
-  if (history && history.length > 0) {
-    const historyString = history.map(h => `${h.sender === 'user' ? 'User' : 'Assistant'}: ${h.text}`).join('\n');
-    prompt += `[Conversation History]:\n${historyString}\n\n`;
-  }
-  
-  prompt += `Student Message: "${message}"\n\nProvide your mentorship response now:`;
   
   logCallback('Code Mentor Agent: Submitting request to AI completion...');
   const response = await getAIChatCompletion({
