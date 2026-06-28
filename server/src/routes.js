@@ -325,6 +325,15 @@ router.post('/mentor/upload', requireAuth, upload.single('file'), async (req, re
   }
 });
 
+router.get('/mentor/documents', requireAuth, async (req, res) => {
+  try {
+    const docs = await db.getAllUserDocuments(req.userId);
+    res.json(docs);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve documents list.' });
+  }
+});
+
 router.get('/mentor/document/:challengeId', requireAuth, async (req, res) => {
   try {
     const doc = await db.getUserDocument(req.userId, req.params.challengeId);

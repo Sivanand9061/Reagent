@@ -580,6 +580,11 @@ export const db = {
 
     await this.updateUserContext(userId, { skillMap, recentStruggles });
     return this.getUserContext(userId);
+  },
+
+  async getAllUserDocuments(userId) {
+    const snap = await adminDb.collection('users').doc(userId).collection('documents').get();
+    return snap.docs.map(doc => ({ challengeId: doc.id, ...doc.data() }));
   }
 };
 

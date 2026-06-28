@@ -483,21 +483,20 @@ input, textarea, select {
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  background: var(--bg-surface);
-  border: 2px dashed var(--border-primary);
+  background: var(--surface-1);
+  border: 2px dashed var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
   transition: var(--transition-smooth);
 }
 
 .upload-card:hover {
-  border-color: var(--accent-blue);
-  background: #fdfdfd;
+  border-color: var(--accent);
+  background: var(--surface-2);
 }
 
 .upload-icon-wrapper {
   font-size: 3rem;
-  color: var(--accent-blue);
+  color: var(--accent);
   margin-bottom: 0.5rem;
 }
 
@@ -519,19 +518,20 @@ input, textarea, select {
 }
 
 .browse-btn {
-  background: var(--text-primary); /* Udemy solid button */
-  color: white;
+  background: var(--text-primary);
+  color: var(--surface-0);
   padding: 0.8rem 2rem;
   border-radius: var(--radius-sm);
   font-weight: 700;
   font-size: 0.95rem;
   margin-top: 1rem;
   border: 1px solid var(--text-primary);
+  cursor: pointer;
 }
 
 .browse-btn:hover {
-  background: #3e4143;
-  border-color: #3e4143;
+  background: var(--text-secondary);
+  border-color: var(--text-secondary);
 }
 
 /* Uploading/Processing Loader */

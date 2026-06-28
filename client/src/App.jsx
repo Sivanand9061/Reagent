@@ -304,6 +304,7 @@ export default function App() {
 
           {activeView === 'upload' && (
             <UploadScreen 
+              onStartChallenge={handleStartChallenge}
               onUploadSuccess={() => {
                 setActiveView('dashboard');
                 loadUserData();
