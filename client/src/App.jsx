@@ -8,7 +8,6 @@ import AuthScreen from './components/AuthScreen';
 import SplitView from './components/SplitView';
 import Dashboard from './components/Dashboard';
 import SettingsModal from './components/SettingsModal';
-import SkillMap from './components/SkillMap';
 import UploadScreen from './components/UploadScreen';
 
 export default function App() {
@@ -156,14 +155,7 @@ export default function App() {
             <span className="sidebar-label">Code Sandbox</span>
           </button>
 
-          <button 
-            onClick={() => setActiveView('skillmap')} 
-            className={`sidebar-link ${activeView === 'skillmap' ? 'active' : ''}`}
-            title="Skill Map"
-          >
-            <Award size={18} />
-            <span className="sidebar-label">Skill Map</span>
-          </button>
+
 
           <button 
             onClick={() => setActiveView('modules')} 
@@ -238,13 +230,7 @@ export default function App() {
           <Home size={20} />
           <span>Home</span>
         </button>
-        <button
-          onClick={() => setActiveView('skillmap')}
-          className={`mobile-nav-item ${activeView === 'skillmap' ? 'active' : ''}`}
-        >
-          <Award size={20} />
-          <span>Skills</span>
-        </button>
+
         <button
           onClick={() => setActiveView('modules')}
           className={`mobile-nav-item ${activeView === 'modules' ? 'active' : ''}`}
@@ -288,11 +274,7 @@ export default function App() {
             />
           )}
 
-          {activeView === 'skillmap' && (
-            <SkillMapView 
-              userStats={{ ...userStats, skillMap: sessionContext?.skillMap || {}, recentStruggles: sessionContext?.recentStruggles || [] }} 
-            />
-          )}
+
 
           {activeView === 'modules' && (
             <ModulesView 
@@ -321,8 +303,6 @@ export default function App() {
               userStats={userStats}
               onRefreshStats={handleRefreshStats}
               filterConcept={filterConcept}
-              skillMap={sessionContext?.skillMap || {}}
-              recentStruggles={sessionContext?.recentStruggles || []}
             />
           )}
         </div>
@@ -338,36 +318,7 @@ export default function App() {
 
 // ─── NESTED SUB-VIEWS ──────────────────────────────────────────────────────────
 
-function SkillMapView({ userStats }) {
-  return (
-    <div style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
-      <div>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-display)' }}>Concept Skill Map</h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          This map visualizes your current topic mastery based on direct sandbox activity and quiz results.
-        </p>
-      </div>
 
-      <div className="glass-panel" style={{ padding: '2rem', background: 'var(--surface-1)', borderRadius: 'var(--radius-lg)' }}>
-        <SkillMap skillMap={userStats?.skillMap || {}} recentStruggles={userStats?.recentStruggles || []} layout="grid" />
-      </div>
-
-      {userStats?.recentStruggles?.length > 0 && (
-        <div className="glass-panel" style={{ padding: '1.5rem', background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem', fontFamily: 'var(--font-display)' }}>Recent Struggles</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {userStats.recentStruggles.map((s, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', padding: '0.5rem 0', borderBottom: idx < userStats.recentStruggles.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{s.concept}</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{s.detail}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function ModulesView({ roadmap, userStats, onStartChallenge }) {
   const [search, setSearch] = useState('');

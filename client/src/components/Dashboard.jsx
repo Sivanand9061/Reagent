@@ -235,26 +235,7 @@ export default function Dashboard({ onStartChallenge }) {
         )}
       </div>
 
-      {/* 1.5. Clickable Skill Map strip (Only if roadmap exists) */}
-      {roadmap && (
-        <div className="glass-panel" style={{ padding: '1.25rem', background: 'var(--surface-1)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.50rem' }}>
-          <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--font-display)' }}>
-            Your concept mastery map (Click a cell to target it in micro-challenges)
-          </h4>
-          <SkillMap 
-            skillMap={sessionContext?.skillMap || {}} 
-            recentStruggles={sessionContext?.recentStruggles || []}
-            onConceptClick={(concept) => {
-              if (nextModule) {
-                onStartChallenge(nextModule.challengeId, concept);
-              } else {
-                onStartChallenge('sandbox', concept);
-              }
-            }} 
-            layout="strip" 
-          />
-        </div>
-      )}
+
 
       {/* 2. Target Job Role Scraper Input (Only if no roadmap generated) */}
       {!roadmap && (

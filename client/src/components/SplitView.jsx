@@ -5,7 +5,6 @@ import MentorPanel from './MentorPanel';
 import QuizPanel from './QuizPanel';
 import CritiquePanel from './CritiquePanel';
 import GlossarySidebar from './GlossarySidebar';
-import SkillMap from './SkillMap';
 import { useAuth } from '../context/AuthContext';
 
 export default function SplitView({ 
@@ -15,9 +14,7 @@ export default function SplitView({
   logs, 
   userStats, 
   onRefreshStats,
-  filterConcept,
-  skillMap,
-  recentStruggles
+  filterConcept
 }) {
   const { getAuthHeaders } = useAuth();
   const [activeTab, setActiveTab] = useState('explainer'); // 'explainer', 'quiz', 'critique', 'glossary'
@@ -311,17 +308,7 @@ export default function SplitView({
             </div>
           </div>
 
-          {/* Collapsible Workspace Skill Map */}
-          <div style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-1)', flexShrink: 0 }}>
-            <details style={{ padding: '0.35rem 1.25rem' }}>
-              <summary style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>▼</span> View Skill Map
-              </summary>
-              <div style={{ marginTop: '0.5rem', paddingBottom: '0.35rem' }}>
-                <SkillMap skillMap={skillMap || {}} recentStruggles={recentStruggles || []} layout="strip" />
-              </div>
-            </details>
-          </div>
+
 
           {/* Code writing section */}
           <div style={{ flexGrow: 1, padding: '0.5rem', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'var(--surface-1)' }}>
